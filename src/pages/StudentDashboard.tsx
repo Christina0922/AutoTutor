@@ -75,17 +75,20 @@ export function StudentDashboard() {
         <KpiCard
           title="오답(X) 개수"
           value={wrongAnswers.length}
-          description="전체 오답 수"
+          subtitle="전체 오답 수"
+          tone="danger"
         />
         <KpiCard
           title="△ 개수"
           value={partialAnswers.length}
-          description="부분 정답 수"
+          subtitle="부분 정답 수"
+          tone="warning"
         />
         <KpiCard
           title="도장 누적"
           value={student.stamps}
-          description="현재 보유 도장"
+          subtitle="현재 보유 도장"
+          tone="success"
         />
       </div>
 

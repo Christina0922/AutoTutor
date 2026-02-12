@@ -1,8 +1,17 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useStudentsStore } from '../store/students';
-import { useRewardsStore } from '../store/rewards';
-import { OXBadge } from '../components/OXBadge';
-import { StampCounter } from '../components/StampCounter';
+import { useStudentsStore } from '@/store/students';
+import { useRewardsStore } from '@/store/rewards';
+import { KpiCard } from '@/components/common/KpiCard';
+import { StatusPill } from '@/components/common/StatusPill';
+import { Section } from '@/components/common/Section';
+import { EmptyState } from '@/components/common/EmptyState';
+import { CopyAllButton } from '@/components/common/CopyAllButton';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Terminal, Camera } from 'lucide-react';
+import { useMemo } from 'react';
 
 export function StudentDashboard() {
   const { studentId } = useParams<{ studentId: string }>();
@@ -12,11 +21,17 @@ export function StudentDashboard() {
 
   const student = studentId ? getStudent(studentId) : null;
 
+  const today = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+
   if (!student) {
     return (
-      <div style={{ padding: '24px' }}>
-        <p>학생을 찾을 수 없습니다.</p>
-        <button onClick={() => navigate('/')}>홈으로</button>
+      <div className="flex flex-col items-center justify-center py-12">
+        <p className="text-muted-foreground mb-4">학생을 찾을 수 없습니다.</p>
+        <Button onClick={() => navigate('/')}>홈으로</Button>
       </div>
     );
   }
@@ -27,278 +42,224 @@ export function StudentDashboard() {
   const penaltyCount = getPenaltyCount(student.id);
   const hasMilestone = student.stamps >= 100;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
   const todayWrongAnswers = wrongAnswers.filter(
     (log) => new Date(log.timestamp) >= today
   );
 
-  return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'var(--card-bg)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            marginBottom: '16px',
-          }}
-        >
-          ← 뒤로
-        </button>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>{student.name}</h1>
-          <button
-            onClick={() => navigate(`/console/${student.id}`)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: 'var(--primary-color)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-            }}
-          >
-            명령 콘솔 열기
-          </button>
-        </div>
-      </div>
+  const wrongAnswersText = todayWrongAnswers
+    .map((log) => `${log.unit} ${log.question}`)
+    .join('\n');
 
+  return (
+    <div className="space-y-6">
+      {/* 도장 100개 달성 Banner */}
       {hasMilestone && (
-        <div
-          style={{
-            backgroundColor: '#ffc107',
-            color: '#000',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '24px',
-            textAlign: 'center',
-            fontWeight: 700,
-            fontSize: '20px',
-          }}
-        >
-          🎉 보드게임 데이 달성!
-          <br />
-          <button
-            onClick={() => resetStamps(student.id)}
-            style={{
-              marginTop: '12px',
-              padding: '10px 24px',
-              backgroundColor: '#000',
-              color: '#ffc107',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 600,
-            }}
-          >
-            사용 완료
-          </button>
-        </div>
+        <Card className="bg-warning/10 border-warning">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold mb-2">🎉 보드게임 데이 예정</h3>
+                <p className="text-sm text-muted-foreground">
+                  도장 100개를 달성했습니다. 보상 사용 후 도장이 초기화됩니다.
+                </p>
+              </div>
+              <Button
+                onClick={() => resetStamps(student.id)}
+                className="bg-warning text-warning-foreground hover:bg-warning/90"
+              >
+                사용 완료
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-        <div
-          style={{
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            padding: '20px',
-          }}
-        >
-          <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-            도장 개수
-          </h2>
-          <div style={{ fontSize: '32px', fontWeight: 700, color: '#ffc107' }}>
-            {student.stamps}개
-          </div>
-          <StampCounter stamps={student.stamps} />
-        </div>
+      {/* 상단 KPI */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <KpiCard
+          title="오답(X) 개수"
+          value={wrongAnswers.length}
+          description="전체 오답 수"
+        />
+        <KpiCard
+          title="△ 개수"
+          value={partialAnswers.length}
+          description="부분 정답 수"
+        />
+        <KpiCard
+          title="도장 누적"
+          value={student.stamps}
+          description="현재 보유 도장"
+        />
+      </div>
 
-        {penaltyCount > 0 && (
-          <div
-            style={{
-              backgroundColor: '#ffebee',
-              border: '1px solid #ffcdd2',
-              borderRadius: '8px',
-              padding: '20px',
-            }}
-          >
-            <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#c62828' }}>
-              징벌
-            </h2>
-            <div style={{ fontSize: '32px', fontWeight: 700, color: '#c62828' }}>
-              {penaltyCount}장
+      {/* 촬영 품질 가이드 */}
+      <Card className="bg-warning/5 border-warning/20">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Camera className="h-5 w-5 text-warning mt-0.5" />
+            <div>
+              <h4 className="font-semibold mb-2">📸 촬영 품질 가이드</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• 선명하게</li>
+                <li>• 수직 각도</li>
+                <li>• 번호/풀이 전체 포함</li>
+              </ul>
             </div>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
-      <div
-        style={{
-          backgroundColor: '#fff3e0',
-          border: '1px solid #ffcc80',
-          borderRadius: '8px',
-          padding: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        <h3 style={{ marginTop: 0, fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>
-          📸 촬영 품질 가이드
-        </h3>
-        <ul style={{ margin: 0, paddingLeft: '20px', color: '#e65100' }}>
-          <li>선명하게</li>
-          <li>수직 각도</li>
-          <li>번호/풀이 전체 포함</li>
-        </ul>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-        <div
-          style={{
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            padding: '20px',
-          }}
+      {/* 본문 2열 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* 좌측: 오답 리스트 */}
+        <Section
+          title="오답 리스트 (X)"
+          action={
+            wrongAnswersText && (
+              <CopyAllButton text={wrongAnswersText} label="전체 복사" />
+            )
+          }
         >
-          <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-            오늘 오답 리스트 ({todayWrongAnswers.length}개)
-          </h2>
-          {todayWrongAnswers.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)' }}>오늘 오답이 없습니다.</div>
-          ) : (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {todayWrongAnswers.map((log) => (
-                <div
-                  key={log.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px',
-                    marginBottom: '4px',
-                    backgroundColor: 'var(--hover-bg)',
-                    borderRadius: '4px',
-                  }}
-                >
-                  <OXBadge status={log.status} size="small" />
-                  <span>{log.unit} {log.question}</span>
+          <Card>
+            <CardContent className="p-4">
+              {todayWrongAnswers.length === 0 ? (
+                <EmptyState
+                  title="오늘 오답이 없습니다"
+                  description="오늘 기록된 오답이 없습니다"
+                />
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {todayWrongAnswers.map((log) => (
+                    <div
+                      key={log.id}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-danger/5 border border-danger/20"
+                    >
+                      <StatusPill status={log.status} size="sm" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">
+                          {log.unit} {log.question}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleString('ko-KR')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              )}
+            </CardContent>
+          </Card>
+        </Section>
 
-        <div
-          style={{
-            backgroundColor: 'var(--card-bg)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            padding: '20px',
-          }}
-        >
-          <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-            △ 항목 ({partialAnswers.length}개)
-          </h2>
-          {partialAnswers.length === 0 ? (
-            <div style={{ color: 'var(--text-secondary)' }}>△ 항목이 없습니다.</div>
-          ) : (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {partialAnswers.map((log) => (
-                <div
-                  key={log.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '8px',
-                    marginBottom: '4px',
-                    backgroundColor: 'var(--hover-bg)',
-                    borderRadius: '4px',
-                  }}
-                >
-                  <OXBadge status={log.status} size="small" />
-                  <span>{log.unit} {log.question}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div
-        style={{
-          backgroundColor: 'var(--card-bg)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-          padding: '20px',
-        }}
-      >
-        <h2 style={{ marginTop: 0, fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-          숙제 목록 ({incompleteHomework.length}개 미완료)
-        </h2>
-        {student.homework.length === 0 ? (
-          <div style={{ color: 'var(--text-secondary)' }}>숙제가 없습니다.</div>
-        ) : (
-          <div>
-            {student.homework.map((hw) => (
-              <div
-                key={hw.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px',
-                  marginBottom: '8px',
-                  backgroundColor: hw.completed ? 'var(--hover-bg)' : '#fff3e0',
-                  border: `1px solid ${hw.completed ? 'var(--border-color)' : '#ffcc80'}`,
-                  borderRadius: '6px',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 600 }}>{hw.unit}</div>
-                  <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{hw.range}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    {new Date(hw.assignedAt).toLocaleDateString('ko-KR')}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  {hw.completed ? (
-                    <span style={{ color: '#4caf50', fontWeight: 600 }}>완료</span>
-                  ) : (
-                    <>
-                      <span style={{ color: '#ff9800', fontWeight: 600 }}>미완료</span>
-                      <button
-                        onClick={() => completeHomework(student.id, hw.id)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'var(--primary-color)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
+        {/* 우측: △ 리스트 + 숙제 리스트 */}
+        <div className="space-y-6">
+          {/* △ 리스트 */}
+          <Section title="△ 항목">
+            <Card>
+              <CardContent className="p-4">
+                {partialAnswers.length === 0 ? (
+                  <EmptyState
+                    title="△ 항목이 없습니다"
+                    description="부분 정답이 없습니다"
+                  />
+                ) : (
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                    {partialAnswers.map((log) => (
+                      <div
+                        key={log.id}
+                        className="flex items-center gap-3 p-2 rounded-lg bg-warning/5 border border-warning/20"
                       >
-                        완료 처리
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                        <StatusPill status={log.status} size="sm" />
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">
+                            {log.unit} {log.question}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(log.timestamp).toLocaleString('ko-KR')}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </Section>
+
+          {/* 숙제 리스트 */}
+          <Section title="숙제 목록">
+            <Card>
+              <CardContent className="p-4">
+                {student.homework.length === 0 ? (
+                  <EmptyState
+                    title="숙제가 없습니다"
+                    description="등록된 숙제가 없습니다"
+                  />
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {student.homework.map((hw) => (
+                      <div
+                        key={hw.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          hw.completed
+                            ? 'bg-muted border-border'
+                            : 'bg-warning/5 border-warning/20'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Checkbox
+                              checked={hw.completed}
+                              onCheckedChange={() => {
+                                if (!hw.completed) {
+                                  completeHomework(student.id, hw.id);
+                                }
+                              }}
+                            />
+                            <span className="font-semibold">{hw.unit}</span>
+                            {hw.unit === '징벌' && (
+                              <Badge variant="destructive" className="text-xs">
+                                징벌
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {hw.range}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(hw.assignedAt).toLocaleDateString('ko-KR')}
+                          </div>
+                        </div>
+                        {hw.completed ? (
+                          <Badge variant="success" className="ml-2">
+                            완료
+                          </Badge>
+                        ) : (
+                          <Badge variant="warning" className="ml-2">
+                            미완료
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </Section>
+        </div>
+      </div>
+
+      {/* 명령 콘솔 버튼 */}
+      <div className="flex justify-end">
+        <Button
+          onClick={() => navigate('/console')}
+          className="gap-2"
+        >
+          <Terminal className="h-4 w-4" />
+          명령 콘솔 열기
+        </Button>
       </div>
     </div>
   );
 }
-

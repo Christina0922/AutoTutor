@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Brand (Primary) - 남색-보라 계열 */
+    --primary: 244 75% 57%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary/Muted */
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 210 20% 96%;
+    --accent-foreground: 222 47% 11%;
+
+    /* Status */
+    --success: 142 72% 29%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+    --danger: 0 84% 55%;
+    --danger-foreground: 0 0% 100%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border/Input/Ring */
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 244 75% 57%;
+
+    /* Radius */
+    --radius: 16px;
+  }
+
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 20% 98%;
+
+    --card: 222 47% 10%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 244 75% 62%;
+    --primary-foreground: 222 47% 7%;
+
+    --secondary: 222 47% 14%;
+    --secondary-foreground: 210 20% 98%;
+
+    --muted: 222 47% 14%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 222 47% 14%;
+    --accent-foreground: 210 20% 98%;
+
+    --success: 142 72% 35%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 55%;
+    --warning-foreground: 222 47% 7%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 47% 18%;
+    --input: 222 47% 18%;
+    --ring: 244 75% 62%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+

@@ -1,27 +1,45 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useStudentsStore } from '../store/students';
-import { useLogsStore } from '../store/logs';
-import { useRewardsStore } from '../store/rewards';
-import { LogInput } from '../components/LogInput';
-import { LogEntry, Homework, RewardLog, ResultStatus } from '../types';
+import { useState, useRef, KeyboardEvent } from 'react';
+import { useStudentsStore } from '@/store/students';
+import { useLogsStore } from '@/store/logs';
+import { useRewardsStore } from '@/store/rewards';
+import { LogEntry, Homework, RewardLog, ResultStatus } from '@/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Section } from '@/components/common/Section';
+import { EmptyState } from '@/components/common/EmptyState';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export function CommandConsole() {
-  const { studentId } = useParams<{ studentId: string }>();
-  const navigate = useNavigate();
-  const { getStudent, addLog: addStudentLog, addHomework, updateStamps } = useStudentsStore();
+  const { students, getStudent, addLog: addStudentLog, addHomework, updateStamps } = useStudentsStore();
   const { addLog } = useLogsStore();
   const { addRewardLog } = useRewardsStore();
-  const [history, setHistory] = useState<string[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [command, setCommand] = useState('');
+  const [history, setHistory] = useState<Array<{ type: 'success' | 'error'; message: string; timestamp: number }>>([]);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const student = studentId ? getStudent(studentId) : null;
+  const student = selectedStudentId ? getStudent(selectedStudentId) : null;
+
+  const addHistory = (type: 'success' | 'error', message: string) => {
+    setHistory((prev) => [...prev, { type, message, timestamp: Date.now() }]);
+  };
 
   const parseCommand = (command: string): void => {
-    if (!student) return;
+    if (!student) {
+      addHistory('error', '학생을 선택해주세요');
+      return;
+    }
 
     const parts = command.trim().split(/\s+/);
     if (parts.length < 2) {
-      setHistory((prev) => [...prev, `❌ 잘못된 명령어: ${command}`]);
+      addHistory('error', `잘못된 명령어: ${command}`);
       return;
     }
 
@@ -39,7 +57,8 @@ export function CommandConsole() {
       };
       
       addHomework(student.id, homework);
-      setHistory((prev) => [...prev, `✅ 숙제 추가: ${unit} ${range}`]);
+      addHistory('success', `숙제 추가: ${unit} ${range}`);
+      setCommand('');
       return;
     }
 
@@ -57,11 +76,12 @@ export function CommandConsole() {
           timestamp: Date.now(),
         };
         addRewardLog(rewardLog);
-        setHistory((prev) => [...prev, `✅ 도장 ${value}개 추가`]);
+        addHistory('success', `도장 ${value}개 추가`);
       } else if (parts[1]?.startsWith('-')) {
         updateStamps(student.id, -value);
-        setHistory((prev) => [...prev, `✅ 도장 ${value}개 차감`]);
+        addHistory('success', `도장 ${value}개 차감`);
       }
+      setCommand('');
       return;
     }
 
@@ -69,7 +89,6 @@ export function CommandConsole() {
     if (parts[0] === '!징벌') {
       const value = parseInt(parts[1]?.replace(/[+-]/, '') || '0', 10);
       
-      // 숙제 페이지 추가
       const penaltyHomework: Homework = {
         id: `penalty-${Date.now()}`,
         unit: '징벌',
@@ -79,7 +98,6 @@ export function CommandConsole() {
       };
       addHomework(student.id, penaltyHomework);
 
-      // 징벌 로그 기록
       const penaltyLog: RewardLog = {
         id: `penalty-${Date.now()}`,
         studentId: student.id,
@@ -90,7 +108,8 @@ export function CommandConsole() {
       };
       addRewardLog(penaltyLog);
 
-      setHistory((prev) => [...prev, `⚠️ 징벌 ${value}장 추가`]);
+      addHistory('success', `징벌 ${value}장 추가`);
+      setCommand('');
       return;
     }
 
@@ -100,7 +119,7 @@ export function CommandConsole() {
     const statusStr = parts[2]?.toUpperCase();
 
     if (!['O', 'X', '△'].includes(statusStr || '')) {
-      setHistory((prev) => [...prev, `❌ 잘못된 상태: ${statusStr} (O/X/△만 가능)`]);
+      addHistory('error', `잘못된 상태: ${statusStr} (O/X/△만 가능)`);
       return;
     }
 
@@ -118,79 +137,163 @@ export function CommandConsole() {
     addStudentLog(student.id, logEntry);
 
     if (status === 'X') {
-      setHistory((prev) => [...prev, `❌ 오답 기록: ${unit} ${question}`]);
+      addHistory('success', `오답 기록: ${unit} ${question}`);
     } else {
-      setHistory((prev) => [...prev, `✅ 기록: ${unit} ${question} ${status}`]);
+      addHistory('success', `기록: ${unit} ${question} ${status}`);
+    }
+    setCommand('');
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (command.trim()) {
+        parseCommand(command);
+      }
     }
   };
 
-  if (!student) {
-    return (
-      <div style={{ padding: '24px' }}>
-        <p>학생을 찾을 수 없습니다.</p>
-        <button onClick={() => navigate('/')}>홈으로</button>
-      </div>
-    );
-  }
-
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'var(--card-bg)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            marginBottom: '16px',
-          }}
-        >
-          ← 뒤로
-        </button>
-        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>
-          명령 콘솔 - {student.name}
-        </h1>
-        <p style={{ marginTop: '8px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-          명령어 형식: 단원명 문제번호 상태 (예: 다각형 12 X)
-          <br />
-          특수 명령: !숙제 단원 범위 | !도장 +1 | !징벌 +2
-        </p>
-      </div>
-
-      <div style={{ marginBottom: '16px' }}>
-        <LogInput
-          onCommand={parseCommand}
-          placeholder="명령어 입력 (예: 다각형 12 X)"
-        />
-      </div>
-
-      <div
-        style={{
-          backgroundColor: 'var(--card-bg)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '8px',
-          padding: '16px',
-          minHeight: '300px',
-          maxHeight: '500px',
-          overflowY: 'auto',
-          fontFamily: 'monospace',
-          fontSize: '14px',
-        }}
-      >
-        {history.length === 0 ? (
-          <div style={{ color: 'var(--text-secondary)' }}>명령어 입력 기록이 없습니다.</div>
-        ) : (
-          history.map((item, idx) => (
-            <div key={idx} style={{ marginBottom: '8px' }}>
-              {item}
+    <div className="grid gap-6 lg:grid-cols-2">
+      {/* 좌측: 커맨드 입력 패널 */}
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>명령어 입력</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">학생 선택</label>
+              <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="학생을 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  {students.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                      등록된 학생이 없습니다
+                    </div>
+                  ) : (
+                    students.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
             </div>
-          ))
-        )}
+            <div>
+              <label className="text-sm font-medium mb-2 block">명령어</label>
+              <textarea
+                ref={inputRef}
+                value={command}
+                onChange={(e) => setCommand(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="예: 다각형 12 X&#10;예: !숙제 다각형 12-15p&#10;예: !도장 +1"
+                className="w-full min-h-[200px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              />
+              <p className="text-xs text-muted-foreground mt-2">
+                Enter: 실행 | Shift+Enter: 줄바꿈
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                if (command.trim()) {
+                  parseCommand(command);
+                }
+              }}
+              disabled={!student || !command.trim()}
+              className="w-full"
+            >
+              실행
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 우측: 치트시트 + 로그 */}
+      <div className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>명령어 규격</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div>
+                <div className="font-semibold mb-1">일반 채점</div>
+                <code className="block bg-muted p-2 rounded text-xs">
+                  단원명 문제번호 상태
+                </code>
+                <p className="text-muted-foreground text-xs mt-1">
+                  예: 다각형 12 X
+                </p>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">숙제 추가</div>
+                <code className="block bg-muted p-2 rounded text-xs">
+                  !숙제 단원명 범위
+                </code>
+                <p className="text-muted-foreground text-xs mt-1">
+                  예: !숙제 다각형 12-15p
+                </p>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">도장 지급</div>
+                <code className="block bg-muted p-2 rounded text-xs">
+                  !도장 +숫자
+                </code>
+                <p className="text-muted-foreground text-xs mt-1">
+                  예: !도장 +1
+                </p>
+              </div>
+              <div>
+                <div className="font-semibold mb-1">징벌</div>
+                <code className="block bg-muted p-2 rounded text-xs">
+                  !징벌 +숫자
+                </code>
+                <p className="text-muted-foreground text-xs mt-1">
+                  예: !징벌 +2
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>실행 로그</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {history.length === 0 ? (
+              <EmptyState
+                title="로그가 없습니다"
+                description="명령어를 실행하면 여기에 표시됩니다"
+              />
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {history.slice().reverse().map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`p-2 rounded text-sm ${
+                      item.type === 'success'
+                        ? 'bg-success/10 text-success-foreground'
+                        : 'bg-danger/10 text-danger-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{item.message}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(item.timestamp).toLocaleTimeString('ko-KR')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
-

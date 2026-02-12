@@ -1,106 +1,137 @@
-import { useNavigate } from 'react-router-dom';
-import { useStudentsStore } from '../store/students';
-import { useRewardsStore } from '../store/rewards';
+import { useMemo } from 'react';
+import { useStudentsStore } from '@/store/students';
+import { useRewardsStore } from '@/store/rewards';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Section } from '@/components/common/Section';
+import { EmptyState } from '@/components/common/EmptyState';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 export function Rewards() {
-  const navigate = useNavigate();
   const { students } = useStudentsStore();
   const { rewardLogs } = useRewardsStore();
 
+  // 학생별 도장 순위 계산
+  const studentRankings = useMemo(() => {
+    return students
+      .map((student) => {
+        const stampLogs = rewardLogs.filter(
+          (log) => log.studentId === student.id && log.type === 'stamp'
+        );
+        const totalStamps = student.stamps;
+        const lastStampDate = stampLogs.length > 0
+          ? Math.max(...stampLogs.map((log) => log.timestamp))
+          : null;
+        const hasMilestone = totalStamps >= 100;
+
+        return {
+          student,
+          totalStamps,
+          hasMilestone,
+          lastStampDate,
+        };
+      })
+      .sort((a, b) => b.totalStamps - a.totalStamps);
+  }, [students, rewardLogs]);
+
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'var(--card-bg)',
-            color: 'var(--text-primary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            marginBottom: '16px',
-          }}
-        >
-          ← 뒤로
-        </button>
-        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>보상 및 징벌 로그</h1>
-      </div>
-
-      <div>
-        {students.map((student) => {
-          const studentLogs = rewardLogs.filter((log) => log.studentId === student.id);
-          const stampLogs = studentLogs.filter((log) => log.type === 'stamp');
-          const penaltyLogs = studentLogs.filter((log) => log.type === 'penalty');
-
-          return (
-            <div
-              key={student.id}
-              style={{
-                backgroundColor: 'var(--card-bg)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '20px',
-                marginBottom: '16px',
-              }}
-            >
-              <h2 style={{ marginTop: 0, fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>
-                {student.name}
-              </h2>
-
-              {stampLogs.length > 0 && (
-                <div style={{ marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>도장 기록</h3>
-                  {stampLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      style={{
-                        padding: '8px',
-                        marginBottom: '4px',
-                        backgroundColor: 'var(--hover-bg)',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                      }}
-                    >
-                      +{log.value}개 - {log.reason || '도장'} (
-                      {new Date(log.timestamp).toLocaleString('ko-KR')})
-                    </div>
+    <div className="space-y-6">
+      <Section title="도장 현황">
+        <Card>
+          <CardContent className="p-0">
+            {studentRankings.length === 0 ? (
+              <div className="p-8">
+                <EmptyState
+                  title="학생이 없습니다"
+                  description="학생을 추가하면 도장 현황이 표시됩니다"
+                />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>이름</TableHead>
+                    <TableHead>도장</TableHead>
+                    <TableHead>100개 달성</TableHead>
+                    <TableHead>마지막 지급일</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {studentRankings.map(({ student, totalStamps, hasMilestone, lastStampDate }) => (
+                    <TableRow key={student.id}>
+                      <TableCell className="font-medium">{student.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="font-semibold">
+                          {totalStamps}개
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {hasMilestone ? (
+                          <Badge variant="success">달성</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {lastStampDate
+                          ? new Date(lastStampDate).toLocaleDateString('ko-KR')
+                          : '-'}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </Section>
 
-              {penaltyLogs.length > 0 && (
-                <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: '#c62828' }}>
-                    징벌 기록
-                  </h3>
-                  {penaltyLogs.map((log) => (
-                    <div
-                      key={log.id}
-                      style={{
-                        padding: '8px',
-                        marginBottom: '4px',
-                        backgroundColor: '#ffebee',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        color: '#c62828',
-                      }}
-                    >
-                      +{log.value}장 - {log.reason || '징벌'} (
-                      {new Date(log.timestamp).toLocaleString('ko-KR')})
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {studentLogs.length === 0 && (
-                <div style={{ color: 'var(--text-secondary)' }}>기록이 없습니다.</div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* 도장 로그 (선택) */}
+      <Section title="최근 도장 로그">
+        <Card>
+          <CardContent className="p-4">
+            {rewardLogs.filter((log) => log.type === 'stamp').length === 0 ? (
+              <EmptyState
+                title="도장 로그가 없습니다"
+                description="도장을 지급하면 여기에 표시됩니다"
+              />
+            ) : (
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                {rewardLogs
+                  .filter((log) => log.type === 'stamp')
+                  .sort((a, b) => b.timestamp - a.timestamp)
+                  .slice(0, 20)
+                  .map((log) => {
+                    const student = students.find((s) => s.id === log.studentId);
+                    return (
+                      <div
+                        key={log.id}
+                        className="flex items-center justify-between p-2 rounded-lg bg-success/5 border border-success/20"
+                      >
+                        <div>
+                          <span className="font-medium">{student?.name || '알 수 없음'}</span>
+                          {' - '}
+                          <span className="text-success font-semibold">+{log.value}개</span>
+                          {log.reason && ` (${log.reason})`}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleString('ko-KR')}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Section>
     </div>
   );
 }
-

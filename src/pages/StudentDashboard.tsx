@@ -1,12 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStudentsStore } from '@/store/students';
-import { useRewardsStore } from '@/store/rewards';
 import { KpiCard } from '@/components/common/KpiCard';
 import { StatusPill } from '@/components/common/StatusPill';
 import { Section } from '@/components/common/Section';
 import { EmptyState } from '@/components/common/EmptyState';
 import { CopyAllButton } from '@/components/common/CopyAllButton';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,7 +16,6 @@ export function StudentDashboard() {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const { getStudent, resetStamps, completeHomework } = useStudentsStore();
-  const { getPenaltyCount } = useRewardsStore();
 
   const student = studentId ? getStudent(studentId) : null;
 
@@ -38,8 +36,6 @@ export function StudentDashboard() {
 
   const wrongAnswers = student.logs.filter((log) => log.status === 'X');
   const partialAnswers = student.logs.filter((log) => log.status === '△');
-  const incompleteHomework = student.homework.filter((h) => !h.completed);
-  const penaltyCount = getPenaltyCount(student.id);
   const hasMilestone = student.stamps >= 100;
 
   const todayWrongAnswers = wrongAnswers.filter(

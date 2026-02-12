@@ -4,9 +4,7 @@ import { useLogsStore } from '@/store/logs';
 import { useRewardsStore } from '@/store/rewards';
 import { LogEntry, Homework, RewardLog, ResultStatus } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Section } from '@/components/common/Section';
 import { EmptyState } from '@/components/common/EmptyState';
 import { 
   Select,

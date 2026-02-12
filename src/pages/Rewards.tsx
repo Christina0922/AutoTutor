@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useStudentsStore } from '@/store/students';
 import { useRewardsStore } from '@/store/rewards';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Section } from '@/components/common/Section';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Badge } from '@/components/ui/badge';

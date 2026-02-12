@@ -82,22 +82,26 @@ export function Hub() {
         <KpiCard
           title="오늘 총 오답(X)"
           value={todayWrongAnswers}
-          description="오늘 기록된 오답 수"
+          subtitle="오늘 기록된 오답 수"
+          tone="danger"
         />
         <KpiCard
           title="△ 수"
           value={todayPartialAnswers}
-          description="오늘 기록된 부분 정답 수"
+          subtitle="오늘 기록된 부분 정답 수"
+          tone="warning"
         />
         <KpiCard
           title="미완료 숙제"
           value={incompleteHomeworkCount}
-          description="전체 미완료 숙제 수"
+          subtitle="전체 미완료 숙제 수"
+          tone="primary"
         />
         <KpiCard
           title="오늘 도장 지급"
           value={todayStampsGiven}
-          description="오늘 지급된 도장 수"
+          subtitle="오늘 지급된 도장 수"
+          tone="success"
         />
       </div>
 
@@ -184,20 +188,20 @@ export function Hub() {
                 description="명령어를 입력하면 여기에 표시됩니다"
               />
             ) : (
-              <div className="space-y-2">
+              <div className="divide-y divide-border">
                 {recentLogs.map((log) => {
                   const student = students.find((s) => s.id === log.studentId);
                   return (
                     <div
                       key={log.id}
-                      className="flex items-center justify-between border-b border-border pb-2 last:border-0 last:pb-0"
+                      className="flex items-center justify-between py-3 first:pt-0 last:pb-0"
                     >
                       <div className="flex-1">
-                        <div className="text-sm">
+                        <div className="text-sm flex items-center gap-2">
                           <span className="font-medium">{student?.name || '알 수 없음'}</span>
-                          {' - '}
+                          <span className="text-muted-foreground">-</span>
                           <span>{log.unit}</span>
-                          {log.question && ` ${log.question}`}
+                          {log.question && <span>{` ${log.question}`}</span>}
                           {' '}
                           <span className={`font-semibold ${
                             log.status === 'O' ? 'text-success' :
@@ -207,7 +211,7 @@ export function Hub() {
                             {log.status}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground mt-1">
                           {new Date(log.timestamp).toLocaleString('ko-KR')}
                         </div>
                       </div>

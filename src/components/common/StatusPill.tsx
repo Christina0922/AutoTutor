@@ -1,5 +1,4 @@
 import { ResultStatus } from '@/types';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface StatusPillProps {
@@ -9,27 +8,25 @@ interface StatusPillProps {
 
 export function StatusPill({ status, size = 'md' }: StatusPillProps) {
   const sizeClasses = {
-    sm: 'h-5 w-5 text-xs',
-    md: 'h-6 w-6 text-sm',
-    lg: 'h-8 w-8 text-base',
+    sm: 'px-2 py-0.5 text-xs',
+    md: 'px-2.5 py-1 text-xs',
+    lg: 'px-3 py-1.5 text-sm',
   };
 
-  const variantMap: Record<ResultStatus, 'success' | 'danger' | 'warning'> = {
-    O: 'success',
-    X: 'danger',
-    '△': 'warning',
-  };
+  const cls =
+    status === "O"
+      ? "bg-success text-success-foreground"
+      : status === "X"
+      ? "bg-danger text-danger-foreground"
+      : "bg-warning text-warning-foreground";
 
   return (
-    <Badge
-      variant={variantMap[status]}
-      className={cn(
-        'rounded-full flex items-center justify-center font-bold',
-        sizeClasses[size]
-      )}
-    >
+    <span className={cn(
+      "inline-flex items-center rounded-full font-semibold",
+      cls,
+      sizeClasses[size]
+    )}>
       {status}
-    </Badge>
+    </span>
   );
 }
-

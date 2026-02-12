@@ -8,9 +8,9 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: '16px',
-        md: '12px',
-        sm: '8px',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
         border: 'hsl(var(--border))',
@@ -53,6 +53,10 @@ export default {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
         },
       },
     },
